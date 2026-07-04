@@ -1,6 +1,5 @@
 import cv2
 import numpy as np
-from skimage.metrics import structural_similarity as ssim
 
 
 def load_grayscale(image_path: str) -> np.ndarray:
@@ -42,6 +41,17 @@ def jpeg_artifact_score(image_path: str) -> tuple[float, str]:
     return score, "JPEG block grid artifacts are elevated." if score > 0.45 else "JPEG block artifacts are not strongly elevated."
 
 
+def normalized_patch_similarity(first: np.ndarray, second: np.ndarray) -> float:
+    first_float = first.astype("float32")
+    second_float = second.astype("float32")
+    first_float -= first_float.mean()
+    second_float -= second_float.mean()
+    denominator = float(np.linalg.norm(first_float) * np.linalg.norm(second_float))
+    if denominator <= 1e-6:
+        return 0.0
+    return float(np.clip(np.sum(first_float * second_float) / denominator, -1.0, 1.0))
+
+
 def copy_move_score(image_path: str) -> tuple[float, str]:
     gray = load_grayscale(image_path)
     resized = cv2.resize(gray, (256, 256), interpolation=cv2.INTER_AREA)
@@ -59,7 +69,7 @@ def copy_move_score(image_path: str) -> tuple[float, str]:
             if abs(x1 - x2) + abs(y1 - y2) < patch_size:
                 continue
             comparisons += 1
-            similarity = ssim(p1, p2)
+            similarity = normalized_patch_similarity(p1, p2)
             if similarity > 0.92:
                 suspicious += 1
 

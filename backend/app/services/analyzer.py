@@ -23,8 +23,13 @@ def make_public_url(path: str) -> str:
     settings = get_settings()
     relative = Path(path).as_posix()
     if relative.startswith("uploads/"):
-        return f"{settings.public_base_url}/{relative}"
-    return f"{settings.public_base_url}/uploads/{Path(path).name}"
+        upload_path = f"/{relative}"
+    else:
+        upload_path = f"/uploads/{Path(path).name}"
+
+    if not settings.public_base_url:
+        return upload_path
+    return f"{settings.public_base_url.rstrip('/')}{upload_path}"
 
 
 def analyze_image(image_path: str, original_filename: str) -> AnalysisReport:
